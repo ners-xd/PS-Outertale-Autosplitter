@@ -1,0 +1,161 @@
+{
+  "splits": 
+  [
+    {
+      "name": "Exit Outlands",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "w_exit",
+          "room_destination": "s_start"
+        }
+      ]
+    },
+    {
+      "name": "Dog Bed Skip",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "s_capture",
+          "room_destination": "c_asgore_asriel"
+        }
+      ]
+    },
+    {
+      "name": "Exit Starton",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "s_battle",
+          "room_destination": "s_exit"
+        }
+      ]
+    },
+    {
+      "name": "Enter Trash Heap",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "f_plank",
+          "room_destination": "f_tunnel"
+        }
+      ]
+    },
+    {
+      "name": "Enter Aerialis Lab",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "a_start",
+          "room_destination": "a_lab_entry"
+        }
+      ]
+    },
+    {
+      "name": "Enter Rec Center",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "a_auditorium",
+          "room_destination": "a_aftershow"
+        }
+      ]
+    },
+    {
+      "name": "Exit CORE",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "a_core_battle",
+          "room_destination": "a_core_exit1"
+        }
+      ]
+    },
+    {
+      "name": "End Alphys Battle",
+      "activators":
+      [
+        {
+          "type": "battle_exit",
+          "trigger_once": true,
+          "room_or_text_id": "c_courtroom",
+          "room_destination": null
+        }
+      ]
+    },
+    {
+      "name": "Enter Throne Room",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "c_road2",
+          "room_destination": "c_throneroom"
+        }
+      ]
+    },
+    {
+      "name": "Exit Archive Six",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "c_archive_exit",
+          "room_destination": "c_bastion"
+        }
+      ]
+    },
+    {
+      "name": "End Asriel Battle",
+      "activators":
+      [
+        {
+          "type": "battle_exit",
+          "trigger_once": true,
+          "room_or_text_id": "c_exit",
+          "room_destination": null
+        }
+      ]
+    },
+    {
+      "name": "Reach Asriel (Epilogue)",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "w_twinkly",
+          "room_destination": "w_start"
+        }
+      ]
+    },
+    {
+      "name": "Chaotic Ending",
+      "activators":
+      [
+        {
+          "type": "text_close",
+          "trigger_once": true,
+          "room_or_text_id": "a_citadel.genotext.coretext27a",
+          "room_destination": null
+        }
+      ]
+    }
+  ]
+}
