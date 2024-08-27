@@ -1,6 +1,6 @@
 # Outertale (Project Spacetime) Autosplitter Mod using WebSockets
 
-# Installation guide
+# Installation Guide
 1. Drop the LiveSplit folder into your game's mods directory (located in the save folder -> mods).
 2. IF YOU ARE ON LIVESPLIT VERSION 1.8.29 OR BELOW (can check by right clicking -> About), download this component: https://github.com/Xenira/LiveSplit-Websocket/releases then add it to your layout. Double click it and change the port from 16835 to 16834. This is not necessary for versions above 1.8.29 as WebSockets became integrated in the program.
 3. Every time you open LiveSplit and want to use the autosplitter, you have to right click -> Control -> Start WebServer / Start WS / some other similar wording.
@@ -11,7 +11,7 @@ You can change your preferences in the mod's config.json file.
 If you notice that it doesn't work, try running LiveSplit as admin.
 If that doesn't work either, update your LiveSplit to the latest version (open it and it should prompt you to update if necessary) OR set up the component again if you are on version 1.8.29 or below and don't want to / can't update.
 
-# splits.json information
+# "splits.json" Information
 - name: the split's name, it's also what will be put in config.json to specify if it is enabled for the user or not;
 - type: room_change / battle_exit / text_close - the type of split, pretty self explanatory;
 - trigger_once: if this split should only be triggered once or as many times as the requirements are met (PER GAME SESSION, NOT PER RUN);
