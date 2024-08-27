@@ -1,0 +1,21 @@
+{
+  "AutoStart": true,
+  "AutoSplit": true,
+  "AutoReset": true,
+
+  "Exit Outlands": true,
+  "Dog Bed Skip": true,
+  "Exit Starton": true,
+  "Enter Trash Heap": true,
+  "Enter Aerialis Lab": true,
+  "Enter Rec Center": true,
+  "Exit CORE": true,
+  "End Alphys Battle": true,
+  "Enter Throne Room": true,
+  "Exit Archive Six": true,
+  "End Asriel Battle": true,
+  "Reach Asriel (Epilogue)": true,
+  "Neutral Ending": true,
+  "Pacifist Ending": true,
+  "Chaotic Ending": true
+}
