@@ -3,7 +3,7 @@
     * By NERS
 */
 
-export default function(mod, { atlas, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, sounds, text, typer, world })
+export default function(mod, { atlas, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, sounds, text, typer, world, battler})
 {
     const socket = new WebSocket("ws://localhost:16834/livesplit");
     var prefs = {};
@@ -19,7 +19,8 @@ export default function(mod, { atlas, content, CosmosText, events, filters, game
         neutralTriggered = false,
         neutralTriggered2 = false,
         pacifistTriggered = false,
-        bullyTriggered = false;
+        bullyTriggered = false,
+        battleLoading = false;
 
     const statusText = new CosmosText(
     {
@@ -192,6 +193,10 @@ export default function(mod, { atlas, content, CosmosText, events, filters, game
                     bullyTriggered = true;
                 }
             }
+            if (prefs["LoadRemoval"] && !battleLoading && !battler.active && battler.SOUL.position.x == battler.buttons[0].position.add(8, 11).x && game.movement == false) {
+                battleLoading = true;
+                socket.send("pausegametime")
+            }
         }
     })
 
@@ -211,6 +216,23 @@ export default function(mod, { atlas, content, CosmosText, events, filters, game
                     split.triggered = true;
                 }
             })
+        }
+        if (socket.readyState == 1 && prefs["LoadRemoval"])
+            socket.send("pausegametime");
+    })
+
+    events.on("teleport", (origin, dest) => {
+       if (socket.readyState == 1 && prefs["LoadRemoval"]) {
+           socket.send("unpausegametime");
+       }
+    });
+
+    events.on("battle", () => {
+        if (battleLoading)
+        {
+            if (socket.readyState == 1)
+                socket.send("unpausegametime");
+            battleLoading = false;
         }
     })
 
