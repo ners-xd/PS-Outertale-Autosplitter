@@ -146,6 +146,18 @@
       ]
     },
     {
+      "name": "Dark Neutral Ending (LV20)",
+      "activators":
+      [
+        {
+          "type": "text_close",
+          "trigger_once": true,
+          "room_or_text_id": "a_citadel.story.lv20",
+          "room_destination": null
+        }
+      ]
+    },
+    {
       "name": "Chaotic Ending",
       "activators":
       [

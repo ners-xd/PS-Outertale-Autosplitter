@@ -3,7 +3,7 @@
     * By NERS
 */
 
-export default function(mod, { atlas, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, text, typer })
+export default function(mod, { atlas, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, sounds, text, typer, world })
 {
     const socket = new WebSocket("ws://localhost:16834/livesplit");
     var prefs = {};
@@ -13,9 +13,13 @@ export default function(mod, { atlas, content, CosmosText, events, filters, game
         "battle_exit": [],
         "text_close": []
     };
-    var timeout = 0;
-    var neutralTriggered = false;
-    var pacifistTriggered = false;
+
+    var 
+        timeout = 0,
+        neutralTriggered = false,
+        neutralTriggered2 = false,
+        pacifistTriggered = false,
+        bullyTriggered = false;
 
     const statusText = new CosmosText(
     {
@@ -161,16 +165,31 @@ export default function(mod, { atlas, content, CosmosText, events, filters, game
             // Had to hard code these ones, I genuinely don't know how to do it otherwise
             if(prefs["AutoSplit"])
             {
-                if(prefs["Neutral Ending"] && !neutralTriggered && game.room == "c_exit" && SAVE.flag.n.neutral_twinkly_stage == 6)
+                if(game.room == "c_exit")
                 {
-                    socket.send("split");
-                    neutralTriggered = true;
+                    if(prefs["Neutral Ending"] && !world.postnoot && !neutralTriggered && SAVE.flag.n.neutral_twinkly_stage == 6)
+                    {
+                        socket.send("split");
+                        neutralTriggered = true;
+                    }
+
+                    else if(prefs["NG+ Neutral Ending"] && world.postnoot && !neutralTriggered2 && sounds.noise.instances.length == 1)
+                    {
+                        socket.send("split");
+                        neutralTriggered2 = true;
+                    }
                 }
                 
                 else if(prefs["Pacifist Ending"] && !pacifistTriggered && game.room == "_hangar" && music.credits1.instances.length == 1)
                 {
                     socket.send("split");
                     pacifistTriggered = true;
+                }
+
+                else if(prefs["Bully Ending"] && !bullyTriggered && SAVE.flag.b.bully_sleep == true)
+                {
+                    socket.send("split");
+                    bullyTriggered = true;
                 }
             }
         }
