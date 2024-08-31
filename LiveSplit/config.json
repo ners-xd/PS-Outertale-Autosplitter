@@ -2,6 +2,7 @@
   "AutoStart": true,
   "AutoSplit": true,
   "AutoReset": true,
+  "Remove Loads": true,
 
   "Exit Outlands": true,
   "Dog Bed Skip": true,
