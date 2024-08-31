@@ -5,6 +5,7 @@
 2. Drop the LiveSplit folder into your game's mods directory (located in the save folder -> mods);
 3. IF YOU ARE ON LIVESPLIT VERSION 1.8.29 OR BELOW (can check by right clicking -> About), download this component: https://github.com/Xenira/LiveSplit-Websocket/releases then add it to your layout. Double click it and change the port from 16835 to 16834. This is not necessary for versions above 1.8.29 as WebSockets became integrated in the program;
 4. Every time you open LiveSplit and want to use the autosplitter, you have to right click -> Control -> Start WebServer / Start WS / some other similar wording.
+* If you want to use the load remover you have to set LiveSplit to Game Time (right click -> Compare Against -> Game Time).
 
 You can change your preferences in the mod's config.json file.
 
