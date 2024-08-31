@@ -105,7 +105,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                 statusText.content = "";
             else
                 hideStatusText(time);
-        }, time)
+        }, time);
     }
 
     function textMatch(text1, text2)
