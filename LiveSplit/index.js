@@ -105,7 +105,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                 statusText.content = "";
             else
                 hideStatusText(time);
-        }, time);
+        }, time)
     }
 
     function textMatch(text1, text2)
@@ -148,13 +148,26 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
     // Completely deactivates errors so they don't show up / trigger debug mode (thanks spacey)
     logician.suspend = () => {};
 
+    // Runs on game close/restart
+    addEventListener("unload", () => 
+    {
+        if(socket.readyState == 1)
+            socket.send("unpausegametime");
+    });
+
     // Runs every frame (not including pre-intro or the game over screen, those segments don't have this renderer active)
     renderer.on("tick", () =>
     {
         renderer.attach("menu", statusText);
         if(socket.readyState == 1)
         {
-            if((prefs["AutoStart"] || prefs["AutoReset"]) && atlas.target == "frontEndNameConfirm" && atlas.navigators.of("frontEndNameConfirm").objects[2].alpha.value < 0.01 && game.input == false)
+            if(prefs["Remove Loads"] && !battleLoading && !battler.active && !game.movement && ((battler.SOUL.position.x == battler.buttons[0].position.add(8, 11).x && battler.SOUL.position.y == battler.buttons[0].position.add(8, 11).y) || (battler.SOUL.position.x == battler.buttons[1].position.add(8, 11).x && battler.SOUL.position.y == battler.buttons[1].position.add(8, 11).y)))
+            {
+                socket.send("pausegametime");
+                battleLoading = true;
+            }
+
+            if((prefs["AutoStart"] || prefs["AutoReset"]) && atlas.target == "frontEndNameConfirm" && atlas.navigators.of("frontEndNameConfirm").objects[2].alpha.value < 0.01 && !game.input)
             {
                 if(prefs["AutoReset"])
                     socket.send("reset");
@@ -225,24 +238,11 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
     // Initiated
     events.on("teleport", (room, dest) => 
     {
-       if(socket.readyState == 1 && prefs["Remove Loads"])
+       if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading && !battler.active)
            socket.send("unpausegametime");
     });
 
     // Runs on entering battle
-    // Start
-    const _battler_computeButtons = battler.computeButtons;
-    battler.computeButtons = function()
-    {
-        if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading)
-        {
-            socket.send("pausegametime");
-            battleLoading = true;
-        }
-        _battler_computeButtons.apply(this);
-    }
-
-    // Initiated
     events.on("battle", () => 
     {
         if(socket.readyState == 1 && prefs["Remove Loads"] && battleLoading)
