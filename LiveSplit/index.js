@@ -1,9 +1,9 @@
 /*
-    * Outertale Project Spacetime mod for sending information to LiveSplit using a WebSocket
-    * By NERS
+    Outertale Project Spacetime mod for sending information to LiveSplit using a WebSocket
+    By NERS (Load Removal by devek1)
 */
 
-export default function(mod, { atlas, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, sounds, text, typer, world, battler})
+export default function(mod, { atlas, battler, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, sounds, text, typer, world })
 {
     const socket = new WebSocket("ws://localhost:16834/livesplit");
     var prefs = {};
@@ -16,11 +16,11 @@ export default function(mod, { atlas, content, CosmosText, events, filters, game
 
     var 
         timeout = 0,
+        battleLoading = false,
         neutralTriggered = false,
         neutralTriggered2 = false,
         pacifistTriggered = false,
-        bullyTriggered = false,
-        battleLoading = false;
+        bullyTriggered = false;
 
     const statusText = new CosmosText(
     {
@@ -163,7 +163,7 @@ export default function(mod, { atlas, content, CosmosText, events, filters, game
                     socket.send("starttimer");
             }
 
-            // Had to hard code these ones, I genuinely don't know how to do it otherwise
+            // Had to hard code these ones
             if(prefs["AutoSplit"])
             {
                 if(game.room == "c_exit")
@@ -193,45 +193,61 @@ export default function(mod, { atlas, content, CosmosText, events, filters, game
                     bullyTriggered = true;
                 }
             }
-            if (prefs["LoadRemoval"] && !battleLoading && !battler.active && battler.SOUL.position.x == battler.buttons[0].position.add(8, 11).x && game.movement == false) {
-                battleLoading = true;
-                socket.send("pausegametime")
-            }
         }
     })
 
     // Runs on room change
+    // Start
     events.on("teleport-pre", (room, dest) =>
     {
-        if(socket.readyState == 1 && prefs["AutoSplit"])
+        if(socket.readyState == 1)
         {
-            splits["room_change"].forEach(split =>
-            {
-                if(split.enabled && 
-                  (!split.trigger_once || (split.trigger_once && split.triggered != true)) &&
-                  (split.room_or_text_id == null || (split.room_or_text_id != null && split.room_or_text_id == room)) &&
-                  (split.room_destination == null || (split.room_destination != null && split.room_destination == dest)))
+            if(prefs["Remove Loads"])
+                socket.send("pausegametime");
+
+            if(prefs["AutoSplit"])
+            {               
+                splits["room_change"].forEach(split =>
                 {
-                    socket.send("split");
-                    split.triggered = true;
-                }
-            })
+                    if(split.enabled && 
+                      (!split.trigger_once || (split.trigger_once && split.triggered != true)) &&
+                      (split.room_or_text_id == null || (split.room_or_text_id != null && split.room_or_text_id == room)) &&
+                      (split.room_destination == null || (split.room_destination != null && split.room_destination == dest)))
+                    {
+                        socket.send("split");
+                        split.triggered = true;
+                    }
+                })
+            }
         }
-        if (socket.readyState == 1 && prefs["LoadRemoval"])
-            socket.send("pausegametime");
     })
 
-    events.on("teleport", (origin, dest) => {
-       if (socket.readyState == 1 && prefs["LoadRemoval"]) {
+    // Initiated
+    events.on("teleport", (room, dest) => 
+    {
+       if(socket.readyState == 1 && prefs["Remove Loads"])
            socket.send("unpausegametime");
-       }
     });
 
-    events.on("battle", () => {
-        if (battleLoading)
+    // Runs on entering battle
+    // Start
+    const _battler_computeButtons = battler.computeButtons;
+    battler.computeButtons = function()
+    {
+        if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading)
         {
-            if (socket.readyState == 1)
-                socket.send("unpausegametime");
+            socket.send("pausegametime");
+            battleLoading = true;
+        }
+        _battler_computeButtons.apply(this);
+    }
+
+    // Initiated
+    events.on("battle", () => 
+    {
+        if(socket.readyState == 1 && prefs["Remove Loads"] && battleLoading)
+        {
+            socket.send("unpausegametime");
             battleLoading = false;
         }
     })
