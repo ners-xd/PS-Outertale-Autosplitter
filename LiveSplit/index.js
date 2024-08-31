@@ -174,7 +174,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                         neutralTriggered = true;
                     }
 
-                    else if(prefs["NG+ Neutral Ending"] && world.postnoot && !neutralTriggered2 && sounds.noise.instances.length == 1)
+                    else if(prefs["NG+ Neutral Ending"] && world.postnoot && !neutralTriggered2 && SAVE.data.n.state_citadel_archive == 0 && sounds.noise.instances.length == 1)
                     {
                         socket.send("split");
                         neutralTriggered2 = true;
