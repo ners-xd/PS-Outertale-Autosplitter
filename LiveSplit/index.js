@@ -3,8 +3,21 @@
     By NERS (Load Removal by devek1)
 */
 
-export default function(mod, { atlas, battler, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, sounds, text, typer, world })
+export default async function(mod, { atlas, battler, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, sounds, text, typer, world })
 {
+    // stackoverflow.com/a/52657929
+    function until(condition) 
+    {
+        const poll = resolve => 
+        {
+            if(condition()) resolve();
+            else setTimeout(_ => poll(resolve), 400);
+        }
+
+        return new Promise(poll);
+    }
+
+    // Halt loading until the socket is done trying to connect and preferences are loaded
     const socket = new WebSocket("ws://localhost:16834/livesplit");
     var prefs = {};
     var splits = 
@@ -14,17 +27,6 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
         "text_close": []
     };
 
-    var 
-        timeout = 0,
-        postnoot = null,
-        battleLoad = null,
-        battleLoading = false,
-        singularityLoaded = false,
-        neutralTriggered = false,
-        neutralTriggered2 = false,
-        pacifistTriggered = false,
-        bullyTriggered = false;
-
     const statusText = new CosmosText(
     {
         filters: [filters.outline],
@@ -32,36 +34,6 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
         fontSize: 8,
         position: { x: 5, y: 5 }
     })
-
-    socket.onopen = function()
-    {
-        console.log("[LiveSplit] Mod loaded");
-        statusText.fill = 0x00FF00;
-        statusText.content = "Connected to LiveSplit!";
-        hideStatusText(3000);
-    }
-
-    socket.onclose = function(evt)
-    {
-        console.log("[LiveSplit] Connection error " + evt.code + ": " + evt.type);
-        statusText.fill = 0xFF0000;
-        if(evt.code == 1005)
-        {
-            statusText.content = "LiveSplit connection closed!\nRestart the game to reconnect.";
-            hideStatusText(5000);
-        }
-        else if(evt.code == 1006)
-        {
-            statusText.content = "Could not connect to LiveSplit!\nCheck if you have started the Web Server.\nRestart the game to reconnect.";
-            hideStatusText(10000);
-        }
-    }
-
-    socket.onerror = function(evt)
-    {
-        if(socket.readyState == 1)
-            console.log("[LiveSplit] Error " + evt.code + ": " + evt.type);
-    }
 
     fetch(mod + "/config.json")
         .then((res) => 
@@ -99,6 +71,36 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
         })
         .catch((error) => console.log("[LiveSplit] Unable to fetch splits.json data: " + error));
 
+    socket.onopen = function()
+    {
+        console.log("[LiveSplit] Mod loaded");
+        statusText.fill = 0x00FF00;
+        statusText.content = "Connected to LiveSplit!";
+        hideStatusText(3000);
+    }
+
+    socket.onclose = function(evt)
+    {
+        console.log("[LiveSplit] Connection error " + evt.code + ": " + evt.type);
+        statusText.fill = 0xFF0000;
+        if(evt.code == 1005)
+        {
+            statusText.content = "LiveSplit connection closed!\nRestart the game to reconnect.";
+            hideStatusText(5000);
+        }
+        else if(evt.code == 1006)
+        {
+            statusText.content = "Could not connect to LiveSplit!\nCheck if you have started the Web Server.\nRestart the game to reconnect.";
+            hideStatusText(10000);
+        }
+    }
+
+    socket.onerror = function(evt)
+    {
+        if(socket.readyState == 1)
+            console.log("[LiveSplit] Error " + evt.code + ": " + evt.type);
+    }
+
     function hideStatusText(time)
     {
         clearTimeout(timeout);
@@ -110,6 +112,19 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                 hideStatusText(time);
         }, time);
     }
+
+    await until(_ => (socket.readyState != 0 && Object.keys(prefs).length > 0)); // Will freeze the game if config.json is empty but that's the user's fault
+
+    var 
+        timeout = null,
+        postnoot = null,
+        battleLoad = null,
+        battleLoading = false,
+        singularityLoaded = false,
+        neutralTriggered = false,
+        neutralTriggered2 = false,
+        pacifistTriggered = false,
+        bullyTriggered = false;
 
     function textMatch(text1, text2)
     {
@@ -151,11 +166,18 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
     // Completely deactivates errors so they don't show up / trigger debug mode (thanks spacey)
     logician.suspend = () => {};
 
+    // Runs on game start
+    events.on("titled", () =>
+    {
+        if(socket.readyState == 1 && prefs["Remove Loads"])
+            socket.send("unpausegametime");
+    })
+
     // Runs on game close/restart
     addEventListener("unload", () => 
     {
-        if(socket.readyState == 1)
-            socket.send("unpausegametime");
+        if(socket.readyState == 1 && prefs["Remove Loads"])
+            socket.send("pausegametime");
     });
 
     // Runs every frame (not including pre-intro or the game over screen, those segments don't have this renderer active)
@@ -164,19 +186,22 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
         renderer.attach("menu", statusText);
         if(socket.readyState == 1)
         {
-            if(prefs["Remove Loads"] && battleLoading && game.movement == true)
+            if(prefs["Remove Loads"])
             {
-                socket.send("unpausegametime");
-                battleLoading = false;
+                if(battleLoading && game.movement == true)
+                {
+                    socket.send("unpausegametime");
+                    battleLoading = false;
+                }
+
+                if(!singularityLoaded && (3 <= SAVE.flag.n.neutral_twinkly_stage < 4) && sounds.noise.instances.length == 1)
+                {
+                    socket.send("unpausegametime");
+                    singularityLoaded = true;
+                }
             }
 
-            if(prefs["Remove Loads"] && !singularityLoaded && (3 <= SAVE.flag.n.neutral_twinkly_stage < 4) && game.movement == true)
-            {
-                socket.send("unpausegametime");
-                singularityLoaded = true;
-            }
-
-            if((prefs["AutoStart"] || prefs["AutoReset"]) && atlas.target == "frontEndNameConfirm" && atlas.navigators.of("frontEndNameConfirm").objects[2].alpha.value < 0.01 && !game.input)
+            if((prefs["AutoStart"] || prefs["AutoReset"]) && atlas.target == "frontEndNameConfirm" && atlas.navigators.of("frontEndNameConfirm").objects[2].alpha.value < 0.01 && game.input == false)
             {
                 if(prefs["AutoReset"])
                     socket.send("reset");
@@ -185,8 +210,8 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                     socket.send("starttimer");
             }
 
-            if (postnoot == null)
-                postnoot = 6 <= SAVE.flag.n.neutral_twinkly_stage;
+            if(postnoot == null)
+                postnoot = (SAVE.flag.n.neutral_twinkly_stage >= 6);
 
             // Had to hard code these ones
             if(prefs["AutoSplit"])
@@ -262,7 +287,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
         if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading)
         {
             battleLoading = true;
-            battleLoad = setTimeout(() => {!battleLoading || socket.send("pausegametime")}, 900)
+            battleLoad = setTimeout(() => { !battleLoading || socket.send("pausegametime") }, 900)
         }
         _battler_computeButtons.apply(this);
     }
