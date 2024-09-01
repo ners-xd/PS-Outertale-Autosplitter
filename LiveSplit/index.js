@@ -16,7 +16,10 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
 
     var 
         timeout = 0,
+        postnoot = null,
+        battleLoad = null,
         battleLoading = false,
+        singularityLoaded = false,
         neutralTriggered = false,
         neutralTriggered2 = false,
         pacifistTriggered = false,
@@ -161,10 +164,16 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
         renderer.attach("menu", statusText);
         if(socket.readyState == 1)
         {
-            if(prefs["Remove Loads"] && !battleLoading && !battler.active && !game.movement && ((battler.SOUL.position.x == battler.buttons[0].position.add(8, 11).x && battler.SOUL.position.y == battler.buttons[0].position.add(8, 11).y) || (battler.SOUL.position.x == battler.buttons[1].position.add(8, 11).x && battler.SOUL.position.y == battler.buttons[1].position.add(8, 11).y)))
+            if(prefs["Remove Loads"] && battleLoading && game.movement == true)
             {
-                socket.send("pausegametime");
-                battleLoading = true;
+                socket.send("unpausegametime");
+                battleLoading = false;
+            }
+
+            if(prefs["Remove Loads"] && !singularityLoaded && (3 <= SAVE.flag.n.neutral_twinkly_stage < 4) && game.movement == true)
+            {
+                socket.send("unpausegametime");
+                singularityLoaded = true;
             }
 
             if((prefs["AutoStart"] || prefs["AutoReset"]) && atlas.target == "frontEndNameConfirm" && atlas.navigators.of("frontEndNameConfirm").objects[2].alpha.value < 0.01 && !game.input)
@@ -176,18 +185,21 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                     socket.send("starttimer");
             }
 
+            if (postnoot == null)
+                postnoot = 6 <= SAVE.flag.n.neutral_twinkly_stage;
+
             // Had to hard code these ones
             if(prefs["AutoSplit"])
             {
                 if(game.room == "c_exit")
                 {
-                    if(prefs["Neutral Ending"] && !world.postnoot && !neutralTriggered && SAVE.flag.n.neutral_twinkly_stage == 6)
+                    if(prefs["Neutral Ending"] && !postnoot && !neutralTriggered && SAVE.flag.n.neutral_twinkly_stage == 6)
                     {
                         socket.send("split");
                         neutralTriggered = true;
                     }
 
-                    else if(prefs["NG+ Neutral Ending"] && world.postnoot && !neutralTriggered2 && SAVE.data.n.state_citadel_archive == 0 && sounds.noise.instances.length == 1)
+                    else if(prefs["NG+ Neutral Ending"] && postnoot && !neutralTriggered2 && SAVE.data.n.state_citadel_archive == 0 && sounds.noise.instances.length == 1)
                     {
                         socket.send("split");
                         neutralTriggered2 = true;
@@ -243,12 +255,26 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
     });
 
     // Runs on entering battle
+    // Start
+    const _battler_computeButtons = battler.computeButtons;
+    battler.computeButtons = function()
+    {
+        if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading)
+        {
+            battleLoading = true;
+            battleLoad = setTimeout(() => {!battleLoading || socket.send("pausegametime")}, 900)
+        }
+        _battler_computeButtons.apply(this);
+    }
+
+    // Initiated
     events.on("battle", () => 
     {
         if(socket.readyState == 1 && prefs["Remove Loads"] && battleLoading)
         {
             socket.send("unpausegametime");
             battleLoading = false;
+            clearTimeout(battleLoad);
         }
     })
 
