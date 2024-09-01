@@ -17,7 +17,9 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
     var 
         timeout = 0,
         postnoot = null,
+        battleLoad = null,
         battleLoading = false,
+        singularityLoaded = false,
         neutralTriggered = false,
         neutralTriggered2 = false,
         pacifistTriggered = false,
@@ -162,10 +164,16 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
         renderer.attach("menu", statusText);
         if(socket.readyState == 1)
         {
-            if(prefs["Remove Loads"] && (battleLoading || (3 <= SAVE.flag.n.neutral_twinkly_stage < 4)) && game.movement == true)
+            if(prefs["Remove Loads"] && battleLoading && game.movement == true)
             {
                 socket.send("unpausegametime");
                 battleLoading = false;
+            }
+
+            if(prefs["Remove Loads"] && !singularityLoaded && (3 <= SAVE.flag.n.neutral_twinkly_stage < 4) && game.movement == true)
+            {
+                socket.send("unpausegametime");
+                singularityLoaded = true;
             }
 
             if((prefs["AutoStart"] || prefs["AutoReset"]) && atlas.target == "frontEndNameConfirm" && atlas.navigators.of("frontEndNameConfirm").objects[2].alpha.value < 0.01 && !game.input)
@@ -178,7 +186,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
             }
 
             if (postnoot == null)
-                postnoot = world.postnoot();
+                postnoot = 6 <= SAVE.flag.n.neutral_twinkly_stage;
 
             // Had to hard code these ones
             if(prefs["AutoSplit"])
@@ -253,8 +261,8 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
     {
         if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading)
         {
-            socket.send("pausegametime");
             battleLoading = true;
+            battleLoad = setTimeout(() => {!battleLoading || socket.send("pausegametime")}, 900)
         }
         _battler_computeButtons.apply(this);
     }
@@ -266,6 +274,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
         {
             socket.send("unpausegametime");
             battleLoading = false;
+            clearTimeout(battleLoad);
         }
     })
 
