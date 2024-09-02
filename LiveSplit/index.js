@@ -252,9 +252,10 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
     {
         if(socket.readyState == 1)
         {
+            /* Temporarily disabled
             if(prefs["Remove Loads"])
                 socket.send("pausegametime");
-
+            */
             if(prefs["AutoSplit"])
             {               
                 splits["room_change"].forEach(split =>
@@ -272,12 +273,14 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
         }
     })
 
+    /*
     // Initiated
     events.on("teleport", (room, dest) => 
     {
        if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading && !battler.active)
            socket.send("unpausegametime");
     });
+    */
 
     // Runs on entering battle
     // Start
