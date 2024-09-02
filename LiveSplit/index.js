@@ -3,7 +3,7 @@
     By NERS (Load Removal by devek1)
 */
 
-export default async function(mod, { atlas, battler, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, sounds, text, typer, world })
+export default async function(mod, { atlas, battler, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, sounds, text, typer, saver })
 {
     // stackoverflow.com/a/52657929
     function until(condition) 
@@ -113,14 +113,11 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
         }, time);
     }
 
-    await until(_ => (socket.readyState != 0 && Object.keys(prefs).length > 0)); // Will freeze the game if config.json is empty but that's the user's fault
+    //await until(_ => (socket.readyState != 0 && Object.keys(prefs).length > 0)); // Will freeze the game if config.json is empty but that's the user's fault
 
     var 
         timeout = null,
         postnoot = null,
-        battleLoad = null,
-        battleLoading = false,
-        singularityLoaded = false,
         neutralTriggered = false,
         neutralTriggered2 = false,
         pacifistTriggered = false,
@@ -166,52 +163,34 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
     // Completely deactivates errors so they don't show up / trigger debug mode (thanks spacey)
     logician.suspend = () => {};
 
-    // Runs on game start
-    events.on("titled", () =>
-    {
-        if(socket.readyState == 1 && prefs["Remove Loads"])
-            socket.send("unpausegametime");
-    })
-
-    // Runs on game close/restart
-    addEventListener("unload", () => 
-    {
-        if(socket.readyState == 1 && prefs["Remove Loads"])
-            socket.send("pausegametime");
-    });
-
     // Runs every frame (not including pre-intro or the game over screen, those segments don't have this renderer active)
     renderer.on("tick", () =>
     {
         renderer.attach("menu", statusText);
         if(socket.readyState == 1)
         {
-            if(prefs["Remove Loads"])
-            {
-                if(battleLoading && game.movement == true)
-                {
-                    socket.send("unpausegametime");
-                    battleLoading = false;
-                }
-
-                if(!singularityLoaded && (3 <= SAVE.flag.n.neutral_twinkly_stage < 4) && sounds.noise.instances.length == 1)
-                {
-                    socket.send("unpausegametime");
-                    singularityLoaded = true;
-                }
-            }
-
             if((prefs["AutoStart"] || prefs["AutoReset"]) && atlas.target == "frontEndNameConfirm" && atlas.navigators.of("frontEndNameConfirm").objects[2].alpha.value < 0.01 && game.input == false)
             {
-                if(prefs["AutoReset"])
+                if(prefs["AutoReset"]) {
                     socket.send("reset");
+                    if (prefs["Sync Game Time"]) saver.time_but_real.value = 0;
+                }
                 
-                if(prefs["AutoStart"] || (!prefs["AutoStart"] && prefs["AutoReset"]))
+                if(prefs["AutoStart"] || (!prefs["AutoStart"] && prefs["AutoReset"])) {
                     socket.send("starttimer");
+                }
+
+                if (prefs["Sync Game Time"]) {
+                    socket.send("initgametime");
+                    socket.send("pausegametime");
+                }
             }
 
             if(postnoot == null)
                 postnoot = (SAVE.flag.n.neutral_twinkly_stage >= 6);
+
+            if (prefs["Sync Game Time"])
+                socket.send("setgametime " + (saver.time_but_real.value / 1000));
 
             // Had to hard code these ones
             if(prefs["AutoSplit"])
@@ -252,8 +231,6 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
     {
         if(socket.readyState == 1)
         {
-            if(prefs["Remove Loads"])
-                socket.send("pausegametime");
 
             if(prefs["AutoSplit"])
             {               
@@ -269,37 +246,6 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
                     }
                 })
             }
-        }
-    })
-
-    // Initiated
-    events.on("teleport", (room, dest) => 
-    {
-       if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading && !battler.active)
-           socket.send("unpausegametime");
-    });
-
-    // Runs on entering battle
-    // Start
-    const _battler_computeButtons = battler.computeButtons;
-    battler.computeButtons = function()
-    {
-        if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading)
-        {
-            battleLoading = true;
-            battleLoad = setTimeout(() => { !battleLoading || socket.send("pausegametime") }, 900)
-        }
-        _battler_computeButtons.apply(this);
-    }
-
-    // Initiated
-    events.on("battle", () => 
-    {
-        if(socket.readyState == 1 && prefs["Remove Loads"] && battleLoading)
-        {
-            socket.send("unpausegametime");
-            battleLoading = false;
-            clearTimeout(battleLoad);
         }
     })
 
@@ -320,6 +266,31 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
             })
         }
     })
+
+    saver.time_but_real = {
+        active: false,
+        last_timestamp: 0,
+        frame_delta: 0,
+        delta: 0,
+        value: 0,
+        stop () {
+            saver.time_but_real.active = false;
+            SAVE.flag.n.time = saver.time_but_real.value;
+        }
+    };
+
+    saver.time_update = function () {
+        requestAnimationFrame((timestamp) => {
+            saver.time_but_real.frame_delta = saver.time_but_real.last_timestamp == 0 ? 0 : timestamp-saver.time_but_real.last_timestamp;
+            saver.time_but_real.last_timestamp = timestamp;
+            saver.time_update();
+        });
+        saver.time_but_real.active && (saver.time_but_real.value += saver.time_but_real.frame_delta);
+        if (5000 <= (saver.time_but_real.delta += saver.time_but_real.frame_delta)) {
+            saver.time_but_real.delta -= 5000;
+            SAVE.flag.n.time = saver.time_but_real.value;
+        }
+    }
 
     // Runs on textbox progression
     const _typer_reset = typer.reset;
