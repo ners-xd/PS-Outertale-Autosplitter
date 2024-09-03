@@ -190,7 +190,7 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
                 postnoot = (SAVE.flag.n.neutral_twinkly_stage >= 6);
 
             if (prefs["Sync Game Time"])
-                socket.send("setgametime " + (saver.time_but_real.value / 1000));
+                socket.send("setgametime " + (saver.time_but_real.value / 60));
 
             // Had to hard code these ones
             if(prefs["AutoSplit"])
@@ -266,31 +266,6 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
             })
         }
     })
-
-    saver.time_but_real = {
-        active: false,
-        last_timestamp: 0,
-        frame_delta: 0,
-        delta: 0,
-        value: 0,
-        stop () {
-            saver.time_but_real.active = false;
-            SAVE.flag.n.time = saver.time_but_real.value;
-        }
-    };
-
-    saver.time_update = function () {
-        requestAnimationFrame((timestamp) => {
-            saver.time_but_real.frame_delta = saver.time_but_real.last_timestamp == 0 ? 0 : timestamp-saver.time_but_real.last_timestamp;
-            saver.time_but_real.last_timestamp = timestamp;
-            saver.time_update();
-        });
-        saver.time_but_real.active && (saver.time_but_real.value += saver.time_but_real.frame_delta);
-        if (5000 <= (saver.time_but_real.delta += saver.time_but_real.frame_delta)) {
-            saver.time_but_real.delta -= 5000;
-            SAVE.flag.n.time = saver.time_but_real.value;
-        }
-    }
 
     // Runs on textbox progression
     const _typer_reset = typer.reset;
