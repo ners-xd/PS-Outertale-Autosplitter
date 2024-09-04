@@ -5,7 +5,7 @@
 2. Download the files from Code -> Download ZIP;
 3. Drop the LiveSplit folder into your game's mods directory (located in the save folder -> mods);
 4. Every time you open LiveSplit and want to use the autosplitter, you have to right click -> Control -> Start WebSocket Server;
-* If you want to use the load remover you have to set LiveSplit to Game Time (right click -> Compare Against -> Game Time).
+* If you want to use the In-Game Time you have to set LiveSplit to Game Time (right click -> Compare Against -> Game Time).
 
 You can change your preferences in the mod's config.json file.
 
