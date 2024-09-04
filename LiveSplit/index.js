@@ -3,103 +3,18 @@
     By NERS (Load Removal by devek1)
 */
 
-export default async function(mod, { atlas, battler, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, sounds, text, typer, world })
+export default function(mod, { atlas, battler, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, saver, sounds, text, typer })
 {
-    // stackoverflow.com/a/52657929
-    function until(condition) 
-    {
-        const poll = resolve => 
-        {
-            if(condition()) resolve();
-            else setTimeout(_ => poll(resolve), 400);
-        }
-
-        return new Promise(poll);
-    }
-
-    // Halt loading until the socket is done trying to connect and preferences are loaded
-    const socket = new WebSocket("ws://localhost:16834/livesplit");
-    var prefs = {};
-    var splits = 
-    {
-        "room_change": [],
-        "battle_exit": [],
-        "text_close": []
-    };
-
-    const statusText = new CosmosText(
-    {
+    var timeout = null;
+    const version = parseFloat(text.menu.footer.match(/(5.)\w+/g));
+    const statusText = new CosmosText
+    ({
         filters: [filters.outline],
         fontFamily: content.fDeterminationMono,
         fontSize: 8,
         position: { x: 5, y: 5 }
-    })
-
-    fetch(mod + "/config.json")
-        .then((res) => 
-        {
-            if(!res.ok)
-                return console.log("[LiveSplit] Could not load config.json: " + res.status);
-            
-            return res.json();
-        })
-        .then((data) => 
-        {
-            prefs = data;
-        })
-        .catch((error) => console.log("[LiveSplit] Unable to fetch config.json data: " + error));
-
-    fetch(mod + "/splits.json")
-        .then((res) => 
-        {
-            if(!res.ok)
-                return console.log("[LiveSplit] Could not load splits.json: " + res.status);
-            
-            return res.json();
-        })
-        .then((data) => 
-        {
-            data.splits.forEach(element => 
-            {
-                element.activators.forEach(activator => 
-                {
-                    activator.name = element.name;
-                    activator.enabled = prefs[element.name];
-                    splits[activator.type].push(activator);
-                });
-            });
-        })
-        .catch((error) => console.log("[LiveSplit] Unable to fetch splits.json data: " + error));
-
-    socket.onopen = function()
-    {
-        console.log("[LiveSplit] Mod loaded");
-        statusText.fill = 0x00FF00;
-        statusText.content = "Connected to LiveSplit!";
-        hideStatusText(3000);
-    }
-
-    socket.onclose = function(evt)
-    {
-        console.log("[LiveSplit] Connection error " + evt.code + ": " + evt.type);
-        statusText.fill = 0xFF0000;
-        if(evt.code == 1005)
-        {
-            statusText.content = "LiveSplit connection closed!\nRestart the game to reconnect.";
-            hideStatusText(5000);
-        }
-        else if(evt.code == 1006)
-        {
-            statusText.content = "Could not connect to LiveSplit!\nCheck if you have started the Web Server.\nRestart the game to reconnect.";
-            hideStatusText(10000);
-        }
-    }
-
-    socket.onerror = function(evt)
-    {
-        if(socket.readyState == 1)
-            console.log("[LiveSplit] Error " + evt.code + ": " + evt.type);
-    }
+    });
+    renderer.attach("menu", statusText);
 
     function hideStatusText(time)
     {
@@ -113,151 +28,215 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
         }, time);
     }
 
-    await until(_ => (socket.readyState != 0 && Object.keys(prefs).length > 0)); // Will freeze the game if config.json is empty but that's the user's fault
-
-    var 
-        timeout = null,
-        postnoot = null,
-        battleLoad = null,
-        battleLoading = false,
-        singularityLoaded = false,
-        neutralTriggered = false,
-        neutralTriggered2 = false,
-        pacifistTriggered = false,
-        bullyTriggered = false;
-
-    function textMatch(text1, text2)
+    if(version < 5.03)
     {
-        text1 = text1.toString()
-            .replace(/(\r\n|\n|\r)/gm, " ") // Remove line breaks
-            .replace(/<([^]*)>/gm, "")      // Remove word wrap
-            .replace(/{([^{}]*)}/gm, "")    // Remove inline code
-            .replace(/§([^§]*)§/gm, "");    // Remove inline fill
-        
-        text2 = text2.split(".");
-        switch(text2.length)
+        statusText.fill = 0xFF0000;
+        statusText.content = "The LiveSplit/Speedrun Mod is only\nsupported on game versions 5.03 and above.";
+        hideStatusText(10000);
+    }
+    else
+    {
+        const socket = new WebSocket("ws://localhost:16834/livesplit");
+        var prefs = {};
+        var splits = 
         {
-            case 1:
-                text2 = text[text2[0]];
-                break;
-            case 2:
-                text2 = text[text2[0]][text2[1]];
-                break;
-            case 3:
-                text2 = text[text2[0]][text2[1]][text2[2]];
-                break;
-            case 4:
-                text2 = text[text2[0]][text2[1]][text2[2]][text2[3]];
-                break;
-            case 5: // Should be enough, the largest array I found in the game's text has a length of 5
-                text2 = text[text2[0]][text2[1]][text2[2]][text2[3]][text2[4]];
-                break;
+            "room_change": [],
+            "battle_exit": [],
+            "text_close": []
+        };
+        var
+            postnoot = null,
+            started = false,
+            neutralTriggered = false,
+            neutralTriggered2 = false,
+            pacifistTriggered = false,
+            bullyTriggered = false;
+
+        fetch(mod + "/config.json")
+            .then((res) => 
+            {
+                if(!res.ok)
+                    return console.log("[LiveSplit] Could not load config.json: " + res.status);
+                
+                return res.json();
+            })
+            .then((data) => 
+            {
+                prefs = data;
+            })
+            .catch((error) => console.log("[LiveSplit] Unable to fetch config.json data: " + error));
+
+        fetch(mod + "/splits.json")
+            .then((res) => 
+            {
+                if(!res.ok)
+                    return console.log("[LiveSplit] Could not load splits.json: " + res.status);
+                
+                return res.json();
+            })
+            .then((data) => 
+            {
+                data.splits.forEach(element => 
+                {
+                    element.activators.forEach(activator => 
+                    {
+                        activator.name = element.name;
+                        activator.enabled = prefs[element.name];
+                        splits[activator.type].push(activator);
+                    });
+                });
+            })
+            .catch((error) => console.log("[LiveSplit] Unable to fetch splits.json data: " + error));
+
+        socket.onopen = function()
+        {
+            console.log("[LiveSplit] Mod loaded");
+            statusText.fill = 0x00FF00;
+            statusText.content = "Connected to LiveSplit!";
+            hideStatusText(3000);
         }
 
-        text2 = text2.toString()
-            .replace(/(\r\n|\n|\r)/gm, " ")
-            .replace(/<([^]*)>/gm, "")    
-            .replace(/{([^{}]*)}/gm, "")
-            .replace(/§([^§]*)§/gm, "");
-
-        return (text1 == text2);
-    }
-
-    // Completely deactivates errors so they don't show up / trigger debug mode (thanks spacey)
-    logician.suspend = () => {};
-
-    // Runs on game start
-    events.on("titled", () =>
-    {
-        if(socket.readyState == 1 && prefs["Remove Loads"])
-            socket.send("unpausegametime");
-    })
-
-    // Runs on game close/restart
-    addEventListener("unload", () => 
-    {
-        if(socket.readyState == 1 && prefs["Remove Loads"])
-            socket.send("pausegametime");
-    });
-
-    // Runs every frame (not including pre-intro or the game over screen, those segments don't have this renderer active)
-    renderer.on("tick", () =>
-    {
-        renderer.attach("menu", statusText);
-        if(socket.readyState == 1)
+        socket.onclose = function(evt)
         {
-            if(prefs["Remove Loads"])
+            console.log("[LiveSplit] Connection error " + evt.code + ": " + evt.type);
+            statusText.fill = 0xFF0000;
+            if(evt.code == 1005)
             {
-                if(battleLoading && game.movement == true)
-                {
-                    socket.send("unpausegametime");
-                    battleLoading = false;
-                }
+                statusText.content = "LiveSplit connection closed!\nRestart the game to reconnect.";
+                hideStatusText(5000);
+            }
+            else if(evt.code == 1006)
+            {
+                statusText.content = "Could not connect to LiveSplit!\nCheck if you have started the Web Server.\nRestart the game to reconnect.";
+                hideStatusText(10000);
+            }
+        }
 
-                if(!singularityLoaded && (3 <= SAVE.flag.n.neutral_twinkly_stage < 4) && sounds.noise.instances.length == 1)
-                {
-                    socket.send("unpausegametime");
-                    singularityLoaded = true;
-                }
+        socket.onerror = function(evt)
+        {
+            if(socket.readyState == 1)
+                console.log("[LiveSplit] Error " + evt.code + ": " + evt.type);
+        }
+
+        function textMatch(text1, text2)
+        {
+            text1 = text1.toString()
+                .replace(/(\r\n|\n|\r)/gm, " ") // Remove line breaks
+                .replace(/<([^]*)>/gm, "")      // Remove word wrap
+                .replace(/{([^{}]*)}/gm, "")    // Remove inline code
+                .replace(/§([^§]*)§/gm, "");    // Remove inline fill
+            
+            text2 = text2.split(".");
+            switch(text2.length)
+            {
+                case 1:
+                    text2 = text[text2[0]];
+                    break;
+                case 2:
+                    text2 = text[text2[0]][text2[1]];
+                    break;
+                case 3:
+                    text2 = text[text2[0]][text2[1]][text2[2]];
+                    break;
+                case 4:
+                    text2 = text[text2[0]][text2[1]][text2[2]][text2[3]];
+                    break;
+                case 5: // Should be enough, the largest array I found in the game's text has a length of 5
+                    text2 = text[text2[0]][text2[1]][text2[2]][text2[3]][text2[4]];
+                    break;
             }
 
-            if((prefs["AutoStart"] || prefs["AutoReset"]) && atlas.target == "frontEndNameConfirm" && atlas.navigators.of("frontEndNameConfirm").objects[2].alpha.value < 0.01 && game.input == false)
+            text2 = text2.toString()
+                .replace(/(\r\n|\n|\r)/gm, " ")
+                .replace(/<([^]*)>/gm, "")    
+                .replace(/{([^{}]*)}/gm, "")
+                .replace(/§([^§]*)§/gm, "");
+
+            return (text1 == text2);
+        }
+
+        // Completely deactivates errors so they don't show up / trigger debug mode (thanks spacey)
+        logician.suspend = () => {};
+
+        // Runs every frame (not including pre-intro or the game over screen, those segments don't have this renderer active)
+        renderer.on("tick", () =>
+        {
+            renderer.attach("menu", statusText);
+            if(atlas.target == "frontEndNameConfirm" && atlas.navigators.of("frontEndNameConfirm").objects[2].alpha.value < 0.01 && game.input == false)
             {
-                if(prefs["AutoReset"])
-                    socket.send("reset");
-                
-                if(prefs["AutoStart"] || (!prefs["AutoStart"] && prefs["AutoReset"]))
-                    socket.send("starttimer");
+                started = true;
+                if(prefs["AutoReset"]) 
+                {
+                    if(socket.readyState == 1)
+                        socket.send("reset");
+                    
+                    saver.time_but_real.value = 0;
+                }
             }
 
             if(postnoot == null)
                 postnoot = (SAVE.flag.n.neutral_twinkly_stage >= 6);
 
-            // Had to hard code these ones
-            if(prefs["AutoSplit"])
+            if(socket.readyState == 1)
             {
-                if(game.room == "c_exit")
+                if(started && prefs["Sync Game Time"])
+                    socket.send("setgametime " + (saver.time_but_real.value / 60));
+
+                // Had to hard code these ones
+                if(prefs["AutoSplit"])
                 {
-                    if(prefs["Neutral Ending"] && !postnoot && !neutralTriggered && SAVE.flag.n.neutral_twinkly_stage == 6)
+                    if(game.room == "c_exit")
+                    {
+                        if(prefs["Neutral Ending"] && !postnoot && !neutralTriggered && SAVE.flag.n.neutral_twinkly_stage == 6)
+                        {
+                            socket.send("split");
+                            neutralTriggered = true;
+                        }
+
+                        else if(prefs["NG+ Neutral Ending"] && postnoot && !neutralTriggered2 && SAVE.data.n.state_citadel_archive == 0 && sounds.noise.instances.length == 1)
+                        {
+                            socket.send("split");
+                            neutralTriggered2 = true;
+                        }
+                    }
+                    
+                    else if(prefs["Pacifist Ending"] && !pacifistTriggered && game.room == "_hangar" && music.credits1.instances.length == 1)
                     {
                         socket.send("split");
-                        neutralTriggered = true;
+                        pacifistTriggered = true;
                     }
 
-                    else if(prefs["NG+ Neutral Ending"] && postnoot && !neutralTriggered2 && SAVE.data.n.state_citadel_archive == 0 && sounds.noise.instances.length == 1)
+                    else if(prefs["Bully Ending"] && !bullyTriggered && SAVE.flag.b.bully_sleep == true)
                     {
                         socket.send("split");
-                        neutralTriggered2 = true;
+                        bullyTriggered = true;
                     }
-                }
-                
-                else if(prefs["Pacifist Ending"] && !pacifistTriggered && game.room == "_hangar" && music.credits1.instances.length == 1)
-                {
-                    socket.send("split");
-                    pacifistTriggered = true;
-                }
-
-                else if(prefs["Bully Ending"] && !bullyTriggered && SAVE.flag.b.bully_sleep == true)
-                {
-                    socket.send("split");
-                    bullyTriggered = true;
                 }
             }
-        }
-    })
+        })
 
-    // Runs on room change
-    // Start
-    events.on("teleport-pre", (room, dest) =>
-    {
-        if(socket.readyState == 1)
+        // Runs on loading into the overworld
+        events.on("init-overworld", () =>
         {
-            /* Temporarily disabled
-            if(prefs["Remove Loads"])
-                socket.send("pausegametime");
-            */
-            if(prefs["AutoSplit"])
-            {               
+            if(socket.readyState == 1 && started)
+            {
+                if(prefs["AutoStart"] || (!prefs["AutoStart"] && prefs["AutoReset"]))
+                    socket.send("starttimer");
+
+                if(prefs["Sync Game Time"]) 
+                {
+                    socket.send("initgametime");
+                    socket.send("pausegametime");
+                }
+            }
+        })
+
+        // Runs on room change
+        // Start
+        events.on("teleport-pre", (room, dest) =>
+        {
+            if(socket.readyState == 1 && prefs["AutoSplit"])
+            {          
                 splits["room_change"].forEach(split =>
                 {
                     if(split.enabled && 
@@ -270,77 +249,44 @@ export default async function(mod, { atlas, battler, content, CosmosText, events
                     }
                 })
             }
-        }
-    })
+        })
 
-    /*
-    // Initiated
-    events.on("teleport", (room, dest) => 
-    {
-       if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading && !battler.active)
-           socket.send("unpausegametime");
-    });
-    */
-
-    // Runs on entering battle
-    // Start
-    const _battler_computeButtons = battler.computeButtons;
-    battler.computeButtons = function()
-    {
-        if(socket.readyState == 1 && prefs["Remove Loads"] && !battleLoading)
+        // Runs on exiting battle
+        events.on("battle-exit", () =>
         {
-            battleLoading = true;
-            battleLoad = setTimeout(() => { !battleLoading || socket.send("pausegametime") }, 900)
-        }
-        _battler_computeButtons.apply(this);
-    }
-
-    // Initiated
-    events.on("battle", () => 
-    {
-        if(socket.readyState == 1 && prefs["Remove Loads"] && battleLoading)
-        {
-            socket.send("unpausegametime");
-            battleLoading = false;
-            clearTimeout(battleLoad);
-        }
-    })
-
-    // Runs on exiting battle
-    events.on("battle-exit", () =>
-    {
-        if(socket.readyState == 1 && prefs["AutoSplit"])
-        {
-            splits["battle_exit"].forEach(split =>
+            if(socket.readyState == 1 && prefs["AutoSplit"])
             {
-                if(split.enabled && 
-                  (!split.trigger_once || (split.trigger_once && split.triggered != true)) &&
-                  (split.room_or_text_id == null || (split.room_or_text_id != null && split.room_or_text_id == game.room)))
+                splits["battle_exit"].forEach(split =>
                 {
-                    socket.send("split");
-                    split.triggered = true;
-                }
-            })
-        }
-    })
+                    if(split.enabled && 
+                      (!split.trigger_once || (split.trigger_once && split.triggered != true)) &&
+                      (split.room_or_text_id == null || (split.room_or_text_id != null && split.room_or_text_id == game.room)))
+                    {
+                        socket.send("split");
+                        split.triggered = true;
+                    }
+                })
+            }
+        })
 
-    // Runs on textbox progression
-    const _typer_reset = typer.reset;
-    typer.reset = function(full = false)
-    {
-        if(socket.readyState == 1 && prefs["AutoSplit"])
+        // Runs on textbox progression
+        const _typer_reset = typer.reset;
+        typer.reset = function(full = false)
         {
-            splits["text_close"].forEach(split =>
+            if(socket.readyState == 1 && prefs["AutoSplit"])
             {
-                if(split.enabled && 
-                  (!split.trigger_once || (split.trigger_once && split.triggered != true)) &&
-                  (split.room_or_text_id == null || (split.room_or_text_id != null && textMatch(game.text, split.room_or_text_id))))
+                splits["text_close"].forEach(split =>
                 {
-                    socket.send("split");
-                    split.triggered = true;
-                }
-            })
+                    if(split.enabled && 
+                      (!split.trigger_once || (split.trigger_once && split.triggered != true)) &&
+                      (split.room_or_text_id == null || (split.room_or_text_id != null && textMatch(game.text, split.room_or_text_id))))
+                    {
+                        socket.send("split");
+                        split.triggered = true;
+                    }
+                })
+            }
+            _typer_reset.apply(this, [full]);
         }
-        _typer_reset.apply(this, [full]);
     }
 }
