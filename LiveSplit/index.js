@@ -1,6 +1,6 @@
 /*
     Outertale Project Spacetime mod for sending information to LiveSplit using a WebSocket
-    By NERS (Load Removal by devek1)
+    By NERS & devek1
 */
 
 export default function(mod, { atlas, battler, content, CosmosText, events, filters, game, logician, music, renderer, SAVE, saver, sounds, text, typer })
