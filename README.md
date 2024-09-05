@@ -1,4 +1,4 @@
-# Outertale (Project Spacetime) Autosplitter Mod using WebSockets
+# Outertale (Project Spacetime) Autosplitter Mod
 
 # Installation Guide
 1. If you are not on the LiveSplit development version (1.8.29-22 as of September 4th 2024, can check by right clicking -> About), download it [here](https://raw.githubusercontent.com/LiveSplit/LiveSplit.github.io/artifacts/LiveSplitDevBuild.zip);
