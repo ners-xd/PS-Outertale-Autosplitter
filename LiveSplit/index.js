@@ -1,5 +1,5 @@
 /*
-    Outertale Project Spacetime mod for sending information to LiveSplit using a WebSocket
+    Outertale (Project Spacetime) mod for sending information to LiveSplit using a WebSocket Server
     By NERS & devek1
 */
 
@@ -107,7 +107,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
             }
             else if(evt.code == 1006)
             {
-                statusText.content = "Could not connect to LiveSplit!\nCheck if you have started the Web Server.\nRestart the game to reconnect.";
+                statusText.content = "Could not connect to LiveSplit!\nCheck if you have started the WebSocket Server.\nRestart the game to reconnect.";
                 hideStatusText(10000);
             }
         }
