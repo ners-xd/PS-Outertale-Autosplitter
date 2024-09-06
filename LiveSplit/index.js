@@ -179,7 +179,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
 
             if(socket.readyState == 1)
             {
-                if(started && prefs["Sync Game Time"])
+                if(saver.time_but_real.value > 0 && prefs["Sync Game Time"])
                     socket.send("setgametime " + (saver.time_but_real.value / 60));
 
                 // Had to hard code these ones
