@@ -1,7 +1,7 @@
 # Outertale (Project Spacetime) Autosplitter Mod
 
 # Installation Guide
-1. If you are not on the LiveSplit development version (1.8.29-22 as of September 4th 2024, can check by right clicking -> About), download it [here](https://raw.githubusercontent.com/LiveSplit/LiveSplit.github.io/artifacts/LiveSplitDevBuild.zip);
+1. If you are not on the LiveSplit development version (1.8.29-[another two digits], can check by right clicking -> About), download it [here](https://raw.githubusercontent.com/LiveSplit/LiveSplit.github.io/artifacts/LiveSplitDevBuild.zip);
 2. Download the files from Code -> Download ZIP;
 3. Drop the LiveSplit folder into your game's mods directory (located in the save folder -> mods);
 4. Every time you open LiveSplit and want to use the autosplitter, you have to right click -> Control -> Start WebSocket Server;
