@@ -16,11 +16,12 @@
   "Exit Archive Six": true,
   "End Asriel Battle": true,
   "Reach Asriel (Epilogue)": true,
-  
+
   "Neutral Ending": true,
   "NG+ Neutral Ending": true,
   "Pacifist Ending": true,
   "Bully Ending": true,
   "LV20 Dark Neutral Ending": true,
-  "Chaotic Ending": true
+  "Chaotic Ending": true,
+  "Any% Ending": true
 }

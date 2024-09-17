@@ -50,7 +50,8 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
             neutralTriggered = false,
             neutralTriggered2 = false,
             pacifistTriggered = false,
-            bullyTriggered = false;
+            bullyTriggered = false,
+            sleepTriggered = false;
 
         fetch(mod + "/config.json")
             .then((res) => 
@@ -179,6 +180,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
 
             if(socket.readyState == 1)
             {
+                console.log(game.room + " " + sounds.noise.instances.length);
                 if(saver.time_but_real.value > 0 && prefs["Sync Game Time"])
                     socket.send("setgametime " + (saver.time_but_real.value / 60));
 
@@ -210,6 +212,12 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                     {
                         socket.send("split");
                         bullyTriggered = true;
+                    }
+
+                    else if(prefs["Any% Ending"] && !sleepTriggered && game.room == "w_toriel_asriel" && sounds.impact.instances.length == 1)
+                    {
+                        socket.send("split");
+                        sleepTriggered = true;
                     }
                 }
             }
