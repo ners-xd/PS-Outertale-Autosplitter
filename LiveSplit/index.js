@@ -180,7 +180,6 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
 
             if(socket.readyState == 1)
             {
-                console.log(game.room + " " + sounds.noise.instances.length);
                 if(saver.time_but_real.value > 0 && prefs["Sync Game Time"])
                     socket.send("setgametime " + (saver.time_but_real.value / 60));
 
