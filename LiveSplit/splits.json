@@ -38,6 +38,18 @@
       ]
     },
     {
+      "name": "Exit Muffet room",
+      "activators":
+      [
+        {
+          "type": "room_change",
+          "trigger_once": true,
+          "room_or_text_id": "f_muffet",
+          "room_destination": "f_shyren"
+        }
+      ]
+    },
+    {
       "name": "Enter Trash Heap",
       "activators":
       [
