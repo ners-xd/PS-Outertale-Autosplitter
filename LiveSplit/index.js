@@ -125,7 +125,8 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                 .replace(/(\r\n|\n|\r)/gm, " ") // Remove line breaks
                 .replace(/<([^]*)>/gm, "")      // Remove word wrap
                 .replace(/{([^{}]*)}/gm, "")    // Remove inline code
-                .replace(/§([^§]*)§/gm, "");    // Remove inline fill
+                .replace(/§([^§]*)§/gm, "")     // Remove inline fill
+                .replace(/([ ])\1{2,}/gm, " "); // Remove leading spaces on new lines
             
             text2 = text2.split(".");
             switch(text2.length)
@@ -151,7 +152,8 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                 .replace(/(\r\n|\n|\r)/gm, " ")
                 .replace(/<([^]*)>/gm, "")    
                 .replace(/{([^{}]*)}/gm, "")
-                .replace(/§([^§]*)§/gm, "");
+                .replace(/§([^§]*)§/gm, "")
+                .replace(/([ ])\1{2,}/gm, " ");
 
             return (text1 == text2);
         }
