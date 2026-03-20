@@ -37,7 +37,8 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
     else
     {
         const socket = new WebSocket("ws://localhost:16834/livesplit");
-        game.split = function() {
+        game.split = function()
+        {
             socket.send(prefs["LiveSplitOne"] ? `{"command": "split"}` : "split");
         }
         var prefs = {};
