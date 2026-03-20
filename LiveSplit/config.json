@@ -2,6 +2,7 @@
   "AutoStart": true,
   "AutoSplit": true,
   "AutoReset": true,
+  "LiveSplitOne": false,
   "Sync Game Time": true,
 
   "Exit Outlands": false,
