@@ -37,8 +37,11 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
     else
     {
         const socket = new WebSocket("ws://localhost:16834/livesplit");
+        game.split = function() {
+            socket.send(prefs["LiveSplitOne"] ? `{"command": "split"}` : "split");
+        }
         var prefs = {};
-        var splits = 
+        var splits =
         {
             "room_change": [],
             "battle_exit": [],
@@ -77,7 +80,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
             })
             .then((data) => 
             {
-                data.splits.forEach(element => 
+                data.splits.forEach(element =>
                 {
                     element.activators.forEach(activator => 
                     {
@@ -171,7 +174,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                 if(prefs["AutoReset"]) 
                 {
                     if(socket.readyState == 1)
-                        socket.send("reset");
+                        socket.send(prefs["LiveSplitOne"] ? `{"command": "reset"}` : "reset");
                     
                     saver.time_but_real.value = 0;
                 }
@@ -183,7 +186,7 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
             if(socket.readyState == 1)
             {
                 if(saver.time_but_real.value > 0 && prefs["Sync Game Time"])
-                    socket.send("setgametime " + (saver.time_but_real.value / 60));
+                    socket.send(prefs["LiveSplitOne"] ? `{"command": "setGameTime", "time": "${saver.time_but_real.value / 60}"}` : ("setgametime " + (saver.time_but_real.value / 60)));
 
                 // Had to hard code these ones
                 if(prefs["AutoSplit"])
@@ -192,32 +195,32 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
                     {
                         if(prefs["Neutral Ending"] && !postnoot && !neutralTriggered && SAVE.flag.n.neutral_twinkly_stage == 6)
                         {
-                            socket.send("split");
+                            game.split();
                             neutralTriggered = true;
                         }
 
                         else if(prefs["NG+ Neutral Ending"] && postnoot && !neutralTriggered2 && SAVE.data.n.state_citadel_archive == 0 && sounds.noise.instances.length == 1)
                         {
-                            socket.send("split");
+                            game.split();
                             neutralTriggered2 = true;
                         }
                     }
                     
                     else if(prefs["Pacifist Ending"] && !pacifistTriggered && game.room == "_hangar" && music.credits1.instances.length == 1)
                     {
-                        socket.send("split");
+                        game.split();
                         pacifistTriggered = true;
                     }
 
                     else if(prefs["Bully Ending"] && !bullyTriggered && SAVE.flag.b.bully_sleep == true)
                     {
-                        socket.send("split");
+                        game.split();
                         bullyTriggered = true;
                     }
 
                     else if(prefs["Any% Ending"] && !sleepTriggered && game.room == "w_toriel_asriel" && sounds.impact.instances.length == 1)
                     {
-                        socket.send("split");
+                        game.split();
                         sleepTriggered = true;
                     }
                 }
@@ -230,12 +233,12 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
             if(socket.readyState == 1 && started)
             {
                 if(prefs["AutoStart"] || (!prefs["AutoStart"] && prefs["AutoReset"]))
-                    socket.send("starttimer");
+                    socket.send(prefs["LiveSplitOne"] ? `{"command": "start"}` : "starttimer");
 
                 if(prefs["Sync Game Time"]) 
                 {
-                    socket.send("initgametime");
-                    socket.send("pausegametime");
+                    socket.send(prefs["LiveSplitOne"] ? `{"command": "initializeGameTime"}` : "initgametime");
+                    socket.send(prefs["LiveSplitOne"] ? `{"command": "pauseGameTime"}` : "pausegametime");
                 }
             }
         })
@@ -248,12 +251,12 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
             {          
                 splits["room_change"].forEach(split =>
                 {
-                    if(split.enabled && 
+                    if(split.enabled &&
                       (!split.trigger_once || (split.trigger_once && split.triggered != true)) &&
                       (split.room_or_text_id == null || (split.room_or_text_id != null && split.room_or_text_id == room)) &&
                       (split.room_destination == null || (split.room_destination != null && split.room_destination == dest)))
                     {
-                        socket.send("split");
+                        game.split();
                         split.triggered = true;
                     }
                 })
@@ -267,11 +270,11 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
             {
                 splits["battle_exit"].forEach(split =>
                 {
-                    if(split.enabled && 
+                    if(split.enabled &&
                       (!split.trigger_once || (split.trigger_once && split.triggered != true)) &&
                       (split.room_or_text_id == null || (split.room_or_text_id != null && split.room_or_text_id == game.room)))
                     {
-                        socket.send("split");
+                        game.split();
                         split.triggered = true;
                     }
                 })
@@ -286,11 +289,11 @@ export default function(mod, { atlas, battler, content, CosmosText, events, filt
             {
                 splits["text_close"].forEach(split =>
                 {
-                    if(split.enabled && 
+                    if(split.enabled &&
                       (!split.trigger_once || (split.trigger_once && split.triggered != true)) &&
                       (split.room_or_text_id == null || (split.room_or_text_id != null && textMatch(game.text, split.room_or_text_id))))
                     {
-                        socket.send("split");
+                        game.split();
                         split.triggered = true;
                     }
                 })
